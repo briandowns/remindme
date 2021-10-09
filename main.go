@@ -22,16 +22,39 @@ var (
 	gitSHA  string
 )
 
-const remindmeSock = "/tmp/remindme.sock"
+const usage = `version: %s
+Usage: %[2]s [-v] [-h] [-s]
+Options:
+    -s        run the server
+    -h        help
+    -v        show version and exit
+Examples: 
+    %[2]s at 09:16 "call the handyman"
+    %[2]s in 5m "login to the meeting"
+    %[2]s on 08/17 "buy a birthday card"
+`
+
+const (
+	remindmeSock = "/tmp/remindme.sock"
+
+	maxArgs = 4
+)
 
 var validDest = []string{"at", "in", "on"}
 
+const (
+	timerNotification = iota
+	cronNotification
+)
+
 // notification
 type notification struct {
-	id   int
-	spec string
-	text string
-	c    *cron.Cron
+	notificationType int
+	id               int
+	spec             string
+	text             string
+	c                *cron.Cron
+	dur              time.Duration
 }
 
 // Run performs the operation of
@@ -58,27 +81,21 @@ func parse(conn net.Conn, c *cron.Cron) (*notification, error) {
 		at := strings.Split(parts[1], ":")
 		hour, minute := at[0], at[1]
 
+		n.notificationType = cronNotification
 		n.spec = minute + " " + hour + " * * *"
 	case "in":
-		now := time.Now()
-
 		dur, err := time.ParseDuration(parts[1])
 		if err != nil {
 			return nil, err
 		}
 
-		switch {
-		case strings.Contains(parts[1], "h"):
-			h := int(dur.Hours()) + now.Hour()
-			n.spec = fmt.Sprintf("* %d * * *", h)
-		case strings.Contains(parts[1], "m"):
-			m := int(dur.Minutes()) + now.Minute()
-			n.spec = fmt.Sprintf("%d * * * *", m)
-		}
+		n.notificationType = timerNotification
+		n.dur = dur
 	case "on":
 		on := strings.Split(parts[1], "/")
 		month, day := on[0], on[1]
 
+		n.notificationType = cronNotification
 		n.spec = "* * " + day + " " + month + " * *"
 	default:
 		return nil, errors.New("invalid descriptor")
@@ -118,18 +135,6 @@ func validate(args []string) error {
 
 	return nil
 }
-
-const usage = `version: %s
-Usage: %[2]s [-v] [-h] [-s]
-Options:
-    -s        run the server
-    -h        help
-    -v        show version and exit
-Examples: 
-    %[2]s at 09:16 "call the handyman"
-    %[2]s in 5m "login to the meeting"
-    %[2]s on 08/17 "buy a birthday card"
-`
 
 func main() {
 	var vers bool
@@ -193,17 +198,27 @@ func main() {
 				continue
 			}
 
-			entryID, err := c.AddJob(n.spec, n)
-			if err != nil {
-				logger.Fatal(err.Error())
+			switch n.notificationType {
+			case cronNotification:
+				entryID, err := c.AddJob(n.spec, n)
+				if err != nil {
+					logger.Fatal(err.Error())
+				}
+				n.id = int(entryID)
+			case timerNotification:
+				go func() {
+					t := time.NewTimer(n.dur)
+					<-t.C
+					n.Run()
+				}()
+
 			}
-			n.id = int(entryID)
 
 			logger.Info("new reminder scheduled", zap.Int("id", n.id))
 		}
 	}
 
-	if len(os.Args) != 4 {
+	if len(os.Args) != maxArgs {
 		fmt.Fprintf(os.Stderr, usage, version, name)
 		os.Exit(1)
 	}
