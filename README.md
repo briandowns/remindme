@@ -20,20 +20,6 @@ remindme at 2:00 "go to the grocery store"
 remindme in 10m "join the call"
 ```
 
-## Docker
-
-Running the server:
-
-```sh
-docker run --rm -v /tmp/remindme.sock:/tmp/remindme.sock -it briandowns/remindme:v0.1.0
-```
-
-Running the client:
-
-```sh
-docker run --rm -v /tmp/remindme.sock:/tmp/remindme.sock -it briandowns/remindme:v0.1.0 in 1m "hello world"
-```
-
 ## Building
 
 You can build the server and the client by running `make` at the top level of the repository or run `make` from the respective component's directory.
