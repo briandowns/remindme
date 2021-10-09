@@ -3,7 +3,7 @@ GO = go
 BINDIR := bin
 BINARY := remindmed
 
-VERSION = v0.1.0
+VERSION = v0.2.0
 GIT_SHA = $(shell git rev-parse HEAD)
 LDFLAGS = -ldflags "-X main.gitSHA=$(GIT_SHA) -X main.version=$(VERSION) -X main.name=$(BINARY)"
 TAGS    = "netgo osusergo no_stage static_build"

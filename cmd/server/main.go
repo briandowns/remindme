@@ -11,8 +11,7 @@ import (
 	"strings"
 	"time"
 
-	//"github.com/martinlindhe/notify"
-	"github.com/gen2brain/beeep"
+	"github.com/martinlindhe/notify"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 )
@@ -35,8 +34,7 @@ type notification struct {
 
 // Run performs the operation of
 func (n notification) Run() {
-	//notify.Notify("remindme", "notice", n.text, iconFile)
-	beeep.Notify("RemindMe", n.text, "")
+	notify.Alert("remindme", "", n.text, "")
 	n.c.Remove(cron.EntryID(n.id))
 }
 
