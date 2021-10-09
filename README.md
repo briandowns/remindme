@@ -13,7 +13,7 @@
 
 ## Examples
 
-Once the server is running, `remindmed &`, you can schedule reminders with the commands below.
+Once the server is running, `remindme -s &`, you can schedule reminders with the commands below.
 
 ```sh
 remindme at 2:00 "go to the grocery store"
@@ -22,7 +22,10 @@ remindme in 10m "join the call"
 
 ## Building
 
-You can build the server and the client by running `make` at the top level of the repository or run `make` from the respective component's directory.
+There are 2 ways to build `remindme`.
+
+1. Run `make`.
+2. Run `docker build <CONTAINER_RePO_NAME>/remindme:v1.0.0 .`
 
 ## Contributions
 
@@ -36,3 +39,4 @@ You can build the server and the client by running `make` at the top level of th
 ## Contact
 
 [@bdowns328](http://twitter.com/bdowns328)
+
