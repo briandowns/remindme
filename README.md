@@ -20,12 +20,20 @@ remindme at 2:00 "go to the grocery store"
 remindme in 10m "join the call"
 ```
 
+To stop the server
+```sh
+$ kill -15 $(cat /tmp/remindme.pid)
+```
+
+The server startup is idempotent. If a new version is compiled or installed, just run `remindme -s &` again to start a new process
+with the latest binary version.
+
 ## Building
 
 There are 2 ways to build `remindme`.
 
 1. Run `make`.
-2. Run `docker build <CONTAINER_RePO_NAME>/remindme:v1.0.0 .`
+2. Run `docker build <CONTAINER_REPO_NAME>/remindme:v1.0.0 .`
 
 ## Contributions
 
