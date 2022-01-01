@@ -8,7 +8,9 @@ import (
 	"io"
 	"net"
 	"os"
+	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/martinlindhe/notify"
@@ -28,7 +30,7 @@ Options:
     -s        run the server
     -h        help
     -v        show version and exit
-Examples: 
+Examples:
     %[2]s at 09:16 "call the handyman"
     %[2]s in 5m "login to the meeting"
     %[2]s on 08/17 "buy a birthday card"
@@ -36,6 +38,7 @@ Examples:
 
 const (
 	remindmeSock = "/tmp/remindme.sock"
+	remindmePid = "/tmp/remindme.pid"
 
 	maxArgs = 4
 )
@@ -136,6 +139,38 @@ func validate(args []string) error {
 	return nil
 }
 
+// stopCurrentProcess check if a current server-process is running
+// if it exists, the existing process is terminated
+func stopCurrentProcess(pathToPidFile string) error {
+	pidData, err := os.ReadFile(pathToPidFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	pid, err := strconv.Atoi(string(pidData))
+	if err != nil {
+		return err
+	}
+
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return err
+	}
+
+	err = process.Signal(syscall.Signal(syscall.SIGINT))
+	if err != nil {
+		if errors.Is(err, os.ErrProcessDone) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 	var vers bool
 	var server bool
@@ -168,6 +203,14 @@ func main() {
 		}
 		defer logger.Sync()
 
+		if err := stopCurrentProcess(remindmePid); err != nil {
+			logger.Fatal(err.Error())
+		}
+
+		if err := os.RemoveAll(remindmePid); err != nil {
+			logger.Fatal(err.Error())
+		}
+
 		if err := os.RemoveAll(remindmeSock); err != nil {
 			logger.Fatal(err.Error())
 		}
@@ -178,6 +221,13 @@ func main() {
 			logger.Fatal(err.Error())
 		}
 		defer l.Close()
+
+		pid := syscall.Getpid()
+
+		err = os.WriteFile(remindmePid, []byte(fmt.Sprintf("%d", pid)), 0644)
+		if err != nil {
+			logger.Fatal(err.Error())
+		}
 
 		logger.Info("starting internal cron service")
 		c := cron.New()
